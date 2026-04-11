@@ -10,6 +10,11 @@ import AppShell from '@/components/layout/AppShell'
 import LoginPage    from '@/pages/auth/LoginPage'
 import RegisterPage from '@/pages/auth/RegisterPage'
 
+// Phase 4
+import LandingPage     from '@/pages/landing/LandingPage'
+import FeatureGate, { TrialBanner } from '@/components/shared/FeatureGate'
+import OnboardingPage  from '@/pages/onboarding/OnboardingPage'
+
 // App pages
 import DashboardPage    from '@/pages/dashboard/DashboardPage'
 import ClientsPage      from '@/pages/clients/ClientsPage'
@@ -37,6 +42,15 @@ function RequireGuest({ children }) {
   return children
 }
 
+// Redirect to onboarding if not completed
+function RequireOnboarding({ children }) {
+  const { user, profile, loading } = useAuthStore()
+  if (loading)  return <LoadingScreen />
+  if (!user)    return <Navigate to="/" replace />
+  if (profile && !profile.onboardingComplete) return <Navigate to="/onboarding" replace />
+  return children
+}
+
 function LoadingScreen() {
   return (
     <div className="min-h-dvh flex items-center justify-center bg-surface-50">
@@ -60,21 +74,25 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Guest routes */}
+        {/* Public routes */}
+        <Route path="/home"     element={<LandingPage />} />
         <Route path="/login"    element={<RequireGuest><LoginPage /></RequireGuest>} />
         <Route path="/register" element={<RequireGuest><RegisterPage /></RequireGuest>} />
 
+        {/* Onboarding — auth required, onboarding not complete */}
+        <Route path="/onboarding" element={<RequireAuth><OnboardingPage /></RequireAuth>} />
+
         {/* Protected routes — wrapped in AppShell */}
-        <Route path="/" element={<RequireAuth><AppShell /></RequireAuth>}>
+        <Route path="/" element={<RequireOnboarding><RequireAuth><AppShell /></RequireAuth></RequireOnboarding>}>
           <Route index                  element={<DashboardPage />} />
           <Route path="clients"         element={<ClientsPage />} />
           <Route path="projects"        element={<ProjectsPage />} />
           <Route path="appointments"    element={<AppointmentsPage />} />
           <Route path="calculator"      element={<CalculatorPage />} />
           <Route path="quotes"          element={<QuotesPage />} />
-          <Route path="suppliers"       element={<SuppliersPage />} />
-          <Route path="orders"          element={<OrdersPage />} />
-          <Route path="outputs"         element={<OutputsPage />} />
+          <Route path="suppliers"       element={<FeatureGate feature="suppliers"><SuppliersPage /></FeatureGate>} />
+          <Route path="orders"          element={<FeatureGate feature="orders"><OrdersPage /></FeatureGate>} />
+          <Route path="outputs"         element={<FeatureGate feature="outputs"><OutputsPage /></FeatureGate>} />
           <Route path="settings"        element={<SettingsPage />} />
         </Route>
 

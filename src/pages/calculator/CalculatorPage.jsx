@@ -35,11 +35,18 @@ export default function CalculatorPage() {
     projectName: searchParams.get('projectName') || '',
   }
 
-  const [panels, setPanels]   = useState([{ ...DEFAULT_PANEL }])
-  const [config, setConfig]   = useState({
+  const [panels, setPanels] = useState([{ ...DEFAULT_PANEL }])
+  const [config, setConfig] = useState({
     ...DEFAULT_CONFIG,
     vatPct: profile?.settings?.defaultVAT || 17,
   })
+
+  // Sync vatPct when profile loads asynchronously
+  useEffect(() => {
+    if (profile?.settings?.defaultVAT) {
+      setConfig(c => ({ ...c, vatPct: profile.settings.defaultVAT }))
+    }
+  }, [profile?.settings?.defaultVAT])
   const [saving, setSaving]       = useState(false)
   const [saveModal, setSaveModal] = useState(false)
 
@@ -268,15 +275,18 @@ function SaveQuoteModal({ result, panels, config, uid, prefill = {}, onClose, on
     setLoading(true)
     try {
       await addQuote(uid, {
-        ...form,
+        // IDs — always propagated
+        clientId:    form.clientId    || '',
+        clientName:  form.clientName  || '',
+        projectId:   form.projectId   || '',
+        projectName: form.projectName || '',
+        notes:       form.notes       || '',
+        // Calculation data
         panels,
         config,
         result: {
-          total:                  result.total,
-          subtotalBeforeDiscount: result.subtotalBeforeDiscount,
-          vatAmount:              result.vatAmount,
-          discountAmount:         result.discountAmount,
-          totalArea:              result.totalArea,
+          // Full result snapshot so quotes never depend on re-calculation
+          ...result,
         },
         title: `הצעת מחיר — ${form.clientName || 'לקוח'}`,
       })

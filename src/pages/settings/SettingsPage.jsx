@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/firebase/config'
 import useAuthStore from '@/store/authStore'
+import useSubscription from '@/hooks/useSubscription'
 import { getPricingSettings, savePricingSettings } from '@/firebase/db'
 import { GLASS_TYPES, PROFILE_TYPES, HARDWARE_SETS } from '@/utils/calculatorEngine'
 
@@ -148,8 +149,8 @@ function SystemSettingsSection() {
         </div>
       </div>
 
-      <InfoRow label="גרסת מערכת" value="0.1.0 — Phase 1" />
-      <InfoRow label="סביבה"       value="פיתוח" />
+      <InfoRow label="גרסת מערכת" value="0.4.0 — Workflow Connected" />
+      <InfoRow label="סביבה"       value="Development" />
 
       <div className="flex items-center gap-3 pt-1">
         <button onClick={handleSave} disabled={saving} className="btn-primary">
@@ -163,37 +164,73 @@ function SystemSettingsSection() {
 
 // ─── Subscription ─────────────────────────────────────────────
 function SubscriptionSection() {
-  const profile = useAuthStore(s => s.profile)
-  const sub     = profile?.subscription
+  const { plan, planLabel, isActive, isTrialExpired, trialDaysLeft, expiresAt } = useSubscription()
 
-  const planLabel = { trial: 'ניסיון חינם', basic: 'Basic', pro: 'Pro' }
   const planColor = { trial: 'badge-warning', basic: 'badge-info', pro: 'badge-success' }
+  const planFeatures = {
+    trial: ['לקוחות ופרויקטים', 'יומן פגישות', 'מחשבון מחיר', 'הצעות מחיר'],
+    basic: ['לקוחות ופרויקטים', 'יומן פגישות', 'מחשבון מחיר', 'הצעות מחיר'],
+    pro:   ['הכל ב-Basic', 'ספקים והזמנות', 'פלטי ייצור', 'דוחות מתקדמים'],
+  }
 
   return (
-    <div className="card max-w-lg space-y-5">
-      <h2 className="font-semibold text-ink">פרטי מנוי</h2>
+    <div className="space-y-5 max-w-lg">
 
-      <div className="flex items-center gap-3">
-        <span className="label mb-0">תוכנית נוכחית:</span>
-        <span className={`badge ${planColor[sub?.plan] || 'badge-neutral'}`}>
-          {planLabel[sub?.plan] || sub?.plan}
-        </span>
+      {/* Current plan card */}
+      <div className="card space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-ink">תוכנית נוכחית</h2>
+          <span className={`badge ${planColor[plan] || 'badge-neutral'}`}>{planLabel}</span>
+        </div>
+
+        {trialDaysLeft !== null && (
+          <div className={`rounded-xl px-4 py-3 ${
+            isTrialExpired ? 'bg-red-50 border border-red-200' :
+            trialDaysLeft <= 3 ? 'bg-red-50 border border-red-100' :
+            'bg-amber-50 border border-amber-100'}`}>
+            <p className={`text-sm font-medium ${isTrialExpired ? 'text-red-700' : 'text-amber-800'}`}>
+              {isTrialExpired
+                ? '⚠️ תקופת הניסיון הסתיימה'
+                : trialDaysLeft === 0 ? '⚠️ הניסיון מסתיים היום!'
+                : `⏳ ${trialDaysLeft} ימים נותרו בניסיון`}
+            </p>
+          </div>
+        )}
+
+        {expiresAt && !isTrialExpired && (
+          <InfoRow label="תוקף עד" value={expiresAt.toLocaleDateString('he-IL')} />
+        )}
+
+        <div>
+          <p className="text-xs font-semibold text-ink-muted uppercase tracking-wide mb-2">כלול בתוכנית</p>
+          <ul className="space-y-1.5">
+            {(planFeatures[plan] || planFeatures.trial).map(f => (
+              <li key={f} className="flex items-center gap-2 text-sm text-ink-muted">
+                <span className="text-brand-600">✓</span>{f}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
 
-      {sub?.expiresAt && (
-        <InfoRow label="תוקף" value={
-          sub.expiresAt?.toDate
-            ? sub.expiresAt.toDate().toLocaleDateString('he-IL')
-            : new Date(sub.expiresAt).toLocaleDateString('he-IL')
-        } />
+      {/* Upgrade options */}
+      {plan !== 'pro' && (
+        <div className="card space-y-4">
+          <h2 className="font-semibold text-ink">שדרג לתוכנית Pro</h2>
+          <p className="text-sm text-ink-muted">
+            קבל גישה לספקים, הזמנות, פלטי ייצור ודוחות.
+          </p>
+          <div className="rounded-xl bg-brand-50 border border-brand-100 p-4">
+            <p className="font-bold text-brand-800 text-lg mb-1">₪199 / חודש</p>
+            <p className="text-xs text-brand-600">ביטול בכל עת</p>
+          </div>
+          <div className="rounded-xl bg-surface-100 px-4 py-3">
+            <p className="text-sm text-ink-muted text-center">
+              💳 תשלום מאובטח עם Stripe — בקרוב
+            </p>
+          </div>
+        </div>
       )}
-
-      <div className="rounded-2xl bg-brand-50 border border-brand-100 p-4">
-        <p className="font-semibold text-brand-800 mb-1">🚀 Phase 4 — ניהול מנויים</p>
-        <p className="text-sm text-brand-700">
-          אינטגרציית Stripe, תוכניות Basic / Pro, וניהול חיוב — יתווסף ב-Phase 4.
-        </p>
-      </div>
     </div>
   )
 }

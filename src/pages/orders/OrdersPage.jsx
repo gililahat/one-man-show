@@ -32,18 +32,24 @@ export default function OrdersPage() {
   const [modal, setModal]         = useState(null)
   const [loading, setLoading]     = useState(true)
 
-  // Auto-open modal if arriving from a quote
-  const urlPrefill = {
-    quoteId:     searchParams.get('quoteId')     || '',
-    clientName:  searchParams.get('clientName')  || '',
-    projectName: searchParams.get('projectName') || '',
-    clientId:    searchParams.get('clientId')    || '',
-    projectId:   searchParams.get('projectId')   || '',
-  }
+  // Auto-open modal if arriving from a quote (read once on mount)
+  const urlQuoteId    = searchParams.get('quoteId')     || ''
+  const urlClientId   = searchParams.get('clientId')    || ''
+  const urlClientName = searchParams.get('clientName')  || ''
+  const urlProjectId  = searchParams.get('projectId')   || ''
+  const urlProjectName= searchParams.get('projectName') || ''
 
   useEffect(() => {
-    if (urlPrefill.quoteId) setModal({ _prefill: urlPrefill })
-  }, [urlPrefill.quoteId]) // eslint-disable-line
+    if (urlQuoteId) {
+      setModal({ _prefill: {
+        quoteId:     urlQuoteId,
+        clientId:    urlClientId,
+        clientName:  urlClientName,
+        projectId:   urlProjectId,
+        projectName: urlProjectName,
+      }})
+    }
+  }, []) // run once on mount only
 
   useEffect(() => {
     if (!uid) return
@@ -193,7 +199,14 @@ function OrderModal({ order, prefill = {}, uid, suppliers, quotes, onClose }) {
 
   const handleQuoteChange = (e) => {
     const q = quotes.find(q => q.id === e.target.value)
-    setForm(f => ({ ...f, quoteId: e.target.value, clientName: q?.clientName || '', projectName: q?.projectName || '' }))
+    setForm(f => ({
+      ...f,
+      quoteId:     e.target.value,
+      clientId:    q?.clientId    || '',
+      clientName:  q?.clientName  || '',
+      projectId:   q?.projectId   || '',
+      projectName: q?.projectName || '',
+    }))
   }
 
   const handleSubmit = async (e) => {
@@ -204,7 +217,7 @@ function OrderModal({ order, prefill = {}, uid, suppliers, quotes, onClose }) {
       if (isEdit) await updateOrder(uid, order.id, form)
       else        await addOrder(uid, form)
       onClose()
-    } catch { setError('שגיאה בשמירה') }
+    } catch (err) { console.error(err); setError('שגיאה בשמירה') }
     finally { setLoading(false) }
   }
 

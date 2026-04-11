@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import useAuthStore from '@/store/authStore'
 import { logout } from '@/firebase/auth'
+import { TrialBanner } from '@/components/shared/FeatureGate'
+import useSubscription from '@/hooks/useSubscription'
 
 // ─── Nav items ────────────────────────────────────────────────
 const NAV = [
@@ -22,6 +24,7 @@ export default function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const displayName = useAuthStore(s => s.displayName())
   const navigate    = useNavigate()
+  const { trialDaysLeft, plan } = useSubscription()
 
   const handleLogout = async () => {
     await logout()
@@ -91,6 +94,9 @@ export default function AppShell() {
 
         {/* Page content */}
         <div className="flex-1 px-4 py-5 lg:px-6 lg:py-6 max-w-5xl mx-auto w-full">
+          {plan === 'trial' && trialDaysLeft !== null && trialDaysLeft <= 7 && (
+            <TrialBanner daysLeft={trialDaysLeft} />
+          )}
           <Outlet />
         </div>
 
