@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base RTL Reset ───────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    direction: rtl;
+    font-family: 'Noto Sans Hebrew', 'Segoe UI', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-surface-50 text-ink antialiased;
+    min-height: 100dvh;
+  }
+
+  /* Remove default focus ring, use custom */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand-500 rounded-sm;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-surface-200 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-ink-subtle; }
+}
+
+/* ─── Component Layer ──────────────────────────────────────── */
+@layer components {
+
+  /* Card */
+  .card {
+    @apply bg-white rounded-2xl shadow-soft border border-surface-200 p-5;
+  }
+
+  /* Btn base */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-medium
+           rounded-xl px-4 py-2.5 text-sm transition-all duration-150
+           focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed select-none;
+  }
+
+  .btn-primary {
+    @apply btn bg-brand-600 text-white hover:bg-brand-700
+           active:scale-[0.97] focus-visible:outline-brand-500;
+  }
+
+  .btn-secondary {
+    @apply btn bg-surface-100 text-ink hover:bg-surface-200
+           border border-surface-200 active:scale-[0.97];
+  }
+
+  .btn-ghost {
+    @apply btn text-ink-muted hover:bg-surface-100 active:scale-[0.97];
+  }
+
+  .btn-danger {
+    @apply btn bg-danger text-white hover:bg-red-600 active:scale-[0.97];
+  }
+
+  /* Form input */
+  .input {
+    @apply w-full rounded-xl border border-surface-200 bg-white
+           px-4 py-2.5 text-sm text-ink placeholder:text-ink-subtle
+           transition-colors duration-150
+           focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-none;
+  }
+
+  .input-error {
+    @apply border-danger focus:border-danger focus:ring-danger/20;
+  }
+
+  /* Label */
+  .label {
+    @apply block text-sm font-medium text-ink-muted mb-1;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .badge-success { @apply badge bg-emerald-100 text-emerald-700; }
+  .badge-warning { @apply badge bg-amber-100 text-amber-700; }
+  .badge-danger  { @apply badge bg-red-100 text-red-700; }
+  .badge-info    { @apply badge bg-blue-100 text-blue-700; }
+  .badge-neutral { @apply badge bg-surface-100 text-ink-muted; }
+
+  /* Page header */
+  .page-header {
+    @apply flex items-center justify-between mb-6 gap-4;
+  }
+
+  .page-title {
+    @apply text-2xl font-bold text-ink;
+  }
+
+  /* Nav item */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+           text-ink-muted transition-all duration-150 cursor-pointer
+           hover:bg-surface-100 hover:text-ink;
+  }
+
+  .nav-item-active {
+    @apply nav-item bg-brand-50 text-brand-600 hover:bg-brand-50 hover:text-brand-700;
+  }
+}
+
+/* ─── Utilities ────────────────────────────────────────────── */
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+
+  /* Smooth tap on mobile */
+  .tap-highlight-none { -webkit-tap-highlight-color: transparent; }
+
+  /* Content area with sidebar offset */
+  .with-sidebar {
+    @apply lg:pr-sidebar;
+  }
+}
