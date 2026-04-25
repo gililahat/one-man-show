@@ -5,7 +5,8 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval,
          addMonths, subMonths, isToday, parseISO } from 'date-fns'
 import { he } from 'date-fns/locale'
 import useAuthStore from '@/store/authStore'
-import { subscribeAppointments, addAppointment, updateAppointment, deleteAppointment, getClients } from '@/firebase/db'
+import { subscribeAppointments, addAppointment, updateAppointment, deleteAppointment, getClients,
+         subscribeBookedSlotsForUser } from '@/firebase/db'
 
 const TYPES = [
   { key: 'measurement', label: 'מדידה',      emoji: '📏' },
@@ -23,7 +24,8 @@ const EMPTY_FORM = {
 
 export default function AppointmentsPage() {
   const uid = useAuthStore(s => s.uid())
-  const [appointments, setAppointments] = useState([])
+  const [manualAppts, setManualAppts] = useState([])
+  const [bookedSlots, setBookedSlots] = useState([])
   const [clients, setClients]   = useState([])
   const [view, setView]         = useState('list') // 'list' | 'calendar'
   const [month, setMonth]       = useState(new Date())
@@ -33,10 +35,33 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     if (!uid) return
-    const unsub = subscribeAppointments(uid, data => { setAppointments(data); setLoading(false) })
+    const unsub1 = subscribeAppointments(uid, data => { setManualAppts(data); setLoading(false) })
+    const unsub2 = subscribeBookedSlotsForUser(uid, setBookedSlots)
     getClients(uid).then(setClients)
-    return unsub
+    return () => { unsub1(); unsub2() }
   }, [uid])
+
+  // Convert booked tokens → appointment-like entries (type: 'installation', read-only)
+  const bookedAsAppts = bookedSlots.map(b => {
+    const [dStr, wStr] = (b.bookedSlot || '').split('|')
+    const [startH]     = (wStr || '').split('-')
+    const dateObj      = dStr && startH ? new Date(`${dStr}T${startH}:00`) : null
+    return {
+      id:         `booking:${b.id}`,
+      title:      `התקנה — ${b.bookedName || b.clientName || ''}`,
+      clientName: b.bookedName || b.clientName || '',
+      clientPhone:b.bookedPhone || b.clientPhone || '',
+      date:       dateObj,
+      type:       'installation',
+      status:     'scheduled',
+      notes:      `אזור: ${b.bookedRegion || '—'} • חלון: ${wStr || '—'}`,
+      color:      b.bookedColor || null,
+      readonly:   true,
+      projectName:b.projectName || '',
+    }
+  }).filter(a => a.date)
+
+  const appointments = [...manualAppts, ...bookedAsAppts]
 
   // Normalize appointment date
   const apptDate = (a) => a.date?.toDate ? a.date.toDate() : new Date(a.date)
@@ -51,6 +76,10 @@ export default function AppointmentsPage() {
   )
 
   const handleDelete = async (id) => {
+    if (id?.startsWith?.('booking:')) {
+      alert('לא ניתן למחוק תיאום התקנה שבוצע על ידי הלקוח. לשינוי — פנה ללקוח.')
+      return
+    }
     if (!confirm('למחוק פגישה זו?')) return
     await deleteAppointment(uid, id)
   }

@@ -1,12 +1,39 @@
 // src/pages/clients/ClientsPage.jsx
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import useAuthStore from '@/store/authStore'
 import { subscribeClients, addClient, updateClient, deleteClient } from '@/firebase/db'
+import ActionSwitch from '@/components/ui/ActionSwitch'
+import { isAccountingEnabled, createCustomer as createAcctCustomer } from '@/integrations/accounting'
+import useToastStore from '@/store/toastStore'
 
-const EMPTY_FORM = { name: '', phone: '', email: '', address: '', notes: '' }
+const EMPTY_FORM = { name: '', phone: '', email: '', address: '', notes: '', active: false }
+
+// Sync a newly-created client to the accounting provider. Non-blocking.
+async function syncNewClientToAccounting(uid, clientId, clientData, addToast) {
+  try {
+    const result = await createAcctCustomer(uid, {
+      name:    clientData.name,
+      phone:   clientData.phone,
+      email:   clientData.email,
+      address: clientData.address,
+    })
+    await updateClient(uid, clientId, {
+      accounting: {
+        externalId: result.externalId,
+        provider:   result.provider,
+        syncedAt:   new Date().toISOString(),
+      },
+    })
+  } catch (err) {
+    console.error('[accounting] createCustomer failed:', err)
+    addToast?.(`הלקוח נוצר באפליקציה, אך הסנכרון לחשבונאות נכשל: ${err.message}`, 'warning')
+  }
+}
 
 export default function ClientsPage() {
   const uid                   = useAuthStore(s => s.uid())
+  const navigate              = useNavigate()
   const [clients, setClients] = useState([])
   const [search, setSearch]   = useState('')
   const [modal, setModal]     = useState(null) // null | 'add' | client object
@@ -59,6 +86,8 @@ export default function ClientsPage() {
             <ClientCard
               key={c.id}
               client={c}
+              uid={uid}
+              onOpen={() => navigate(`/clients/${c.id}`)}
               onEdit={() => setModal(c)}
               onDelete={() => handleDelete(c.id)}
             />
@@ -84,37 +113,54 @@ export default function ClientsPage() {
 }
 
 // ─── Client Card ──────────────────────────────────────────────
-function ClientCard({ client, onEdit, onDelete }) {
+function ClientCard({ client, uid, onOpen, onEdit, onDelete }) {
   const initials = client.name?.split(' ').map(w => w[0]).join('').slice(0, 2) || '?'
+  const isActive = !!client.active
+
+  const handleActivate = async (val) => {
+    await updateClient(uid, client.id, { active: val })
+  }
+
   return (
-    <div className="card hover:shadow-card transition-shadow group">
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 font-bold
-                        text-sm flex items-center justify-center shrink-0">
+    <div className="card overflow-hidden">
+
+      {/* ── Tappable profile area ── */}
+      <button
+        type="button"
+        onClick={onOpen}
+        className="w-full text-right flex items-center gap-3 hover:bg-surface-50 active:bg-surface-100 transition-colors rounded-xl p-1 -m-1"
+      >
+        <div
+          className="w-10 h-10 rounded-full font-bold text-sm flex items-center justify-center shrink-0 transition-colors duration-300"
+          style={{
+            background: isActive ? 'rgba(245,197,24,0.15)' : 'rgba(255,255,255,0.06)',
+            color:      isActive ? '#F5C518' : '#888',
+          }}
+        >
           {initials}
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-ink truncate">{client.name}</p>
-          {client.phone && (
-            <a href={`tel:${client.phone}`}
-               className="text-sm text-ink-muted hover:text-brand-600 block truncate"
-               dir="ltr">
-              {client.phone}
-            </a>
-          )}
-          {client.email && (
-            <p className="text-xs text-ink-subtle truncate" dir="ltr">{client.email}</p>
-          )}
-          {client.address && (
-            <p className="text-xs text-ink-subtle truncate mt-0.5">📍 {client.address}</p>
-          )}
+          {client.phone   && <p className="text-sm text-ink-muted truncate" dir="ltr">{client.phone}</p>}
+          {client.email   && <p className="text-xs text-ink-subtle truncate" dir="ltr">{client.email}</p>}
+          {client.address && <p className="text-xs text-ink-subtle truncate mt-0.5">📍 {client.address}</p>}
         </div>
-      </div>
-      {/* Actions */}
-      <div className="flex gap-2 mt-4 pt-3 border-t border-surface-100
-                      opacity-0 group-hover:opacity-100 transition-opacity">
-        <button className="btn-secondary text-xs flex-1" onClick={onEdit}>עריכה</button>
-        <button className="btn-ghost text-xs text-danger flex-1" onClick={onDelete}>מחיקה</button>
+        <span className="text-ink-subtle text-lg shrink-0">←</span>
+      </button>
+
+      {/* ── Bottom bar: toggle + actions ── */}
+      <div className="mt-3 pt-3 border-t border-surface-300 flex items-center justify-between">
+        <ActionSwitch
+          label="הפעל לקוח"
+          labelOn="לקוח פעיל"
+          active={isActive}
+          onToggle={handleActivate}
+          color="gold"
+        />
+        <div className="flex gap-2">
+          <button className="btn-secondary text-xs" onClick={onEdit}>עריכה</button>
+          <button className="btn-ghost text-xs text-danger" onClick={onDelete}>מחיקה</button>
+        </div>
       </div>
     </div>
   )
@@ -126,6 +172,7 @@ function ClientModal({ client, uid, onClose }) {
   const [form, setForm]     = useState(client || EMPTY_FORM)
   const [loading, setLoading] = useState(false)
   const [error, setError]   = useState('')
+  const addToast            = useToastStore(s => s.addToast)
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
 
@@ -134,8 +181,16 @@ function ClientModal({ client, uid, onClose }) {
     if (!form.name.trim()) { setError('שם הלקוח הוא שדה חובה'); return }
     setLoading(true)
     try {
-      if (isEdit) await updateClient(uid, client.id, form)
-      else        await addClient(uid, form)
+      if (isEdit) {
+        await updateClient(uid, client.id, form)
+      } else {
+        // Create locally first
+        const ref = await addClient(uid, form)
+        // Then sync to accounting provider in background (non-blocking)
+        if (await isAccountingEnabled(uid)) {
+          syncNewClientToAccounting(uid, ref.id, form, addToast)
+        }
+      }
       onClose()
     } catch {
       setError('שגיאה בשמירת הלקוח')

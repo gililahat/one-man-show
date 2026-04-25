@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { format } from 'date-fns'
-import { he } from 'date-fns/locale'
 import useAuthStore from '@/store/authStore'
 import { subscribeQuotes, logExport } from '@/firebase/db'
 import {
@@ -72,15 +71,13 @@ export default function OutputsPage() {
     return subscribeQuotes(uid, data => {
       setQuotes(data)
       setLoading(false)
+      // Auto-select quote if arriving from Quotes page
+      if (urlQuoteId) {
+        const found = data.find(q => q.id === urlQuoteId)
+        if (found) setSelected(found)
+      }
     })
-  }, [uid])
-
-  // Auto-select quote once quotes are loaded
-  useEffect(() => {
-    if (!urlQuoteId || quotes.length === 0) return
-    const found = quotes.find(q => q.id === urlQuoteId)
-    if (found) setSelected(found)
-  }, [urlQuoteId, quotes])
+  }, [uid]) // eslint-disable-line
 
   const generate = (type) => {
     if (!selectedQuote) return

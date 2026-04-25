@@ -7,7 +7,7 @@ import {
   updateProfile,
   onAuthStateChanged,
 } from 'firebase/auth'
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, setDoc, getDocFromServer, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from './config'
 
 // ─── Login ───────────────────────────────────────────────────
@@ -16,7 +16,17 @@ export const loginWithEmail = (email, password) =>
 
 // ─── Register ────────────────────────────────────────────────
 export const registerWithEmail = async (email, password, displayName) => {
-  const cred = await createUserWithEmailAndPassword(auth, email, password)
+  let cred
+  try {
+    cred = await createUserWithEmailAndPassword(auth, email, password)
+  } catch (err) {
+    console.error('[registerWithEmail] createUserWithEmailAndPassword failed:', {
+      code: err.code,
+      message: err.message,
+      email,
+    })
+    throw err
+  }
   await updateProfile(cred.user, { displayName })
   // Create user document in Firestore
   await setDoc(doc(db, 'users', cred.user.uid), {
@@ -48,7 +58,7 @@ export const resetPassword = (email) => sendPasswordResetEmail(auth, email)
 
 // ─── Fetch user profile ──────────────────────────────────────
 export const fetchUserProfile = async (uid) => {
-  const snap = await getDoc(doc(db, 'users', uid))
+  const snap = await getDocFromServer(doc(db, 'users', uid))
   return snap.exists() ? snap.data() : null
 }
 

@@ -25,22 +25,23 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center
-                    bg-gradient-to-br from-surface-50 via-white to-brand-50 px-4">
+    <div className="min-h-dvh flex items-center justify-center bg-surface-50 px-4">
       <div className="w-full max-w-sm">
 
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-brand-600 flex items-center justify-center
+          <div className="w-14 h-14 rounded-2xl bg-brand-400 flex items-center justify-center
                           shadow-card mb-4">
-            <span className="text-white text-lg font-bold tracking-tight">OMS</span>
+            <span className="text-black text-lg font-bold tracking-tight">OMS</span>
           </div>
-          <h1 className="text-2xl font-bold text-ink">ONE MAN SHOW</h1>
-          <p className="text-sm text-ink-muted mt-1">ניהול עסק שלם בלחיצת כפתור</p>
+          <h1 className="text-2xl font-bold text-ink border border-white/30 px-5 py-1.5 rounded-lg tracking-widest">
+            ONE MAN SHOW
+          </h1>
+          <p className="text-sm text-ink-muted mt-3">ניהול עסק שלם בלחיצת כפתור</p>
         </div>
 
         {/* Card */}
-        <div className="card shadow-card">
+        <div className="card">
           <h2 className="text-lg font-semibold text-ink mb-5">כניסה למערכת</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -62,7 +63,7 @@ export default function LoginPage() {
               <div className="flex items-center justify-between mb-1">
                 <label className="label mb-0">סיסמה</label>
                 <Link to="/forgot-password"
-                      className="text-xs text-brand-600 hover:text-brand-700">
+                      className="text-xs text-brand-400 hover:text-brand-300">
                   שכחתי סיסמה
                 </Link>
               </div>
@@ -79,8 +80,8 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3">
-                <p className="text-sm text-red-600">{error}</p>
+              <div className="rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-3">
+                <p className="text-sm text-red-400">{error}</p>
               </div>
             )}
 
@@ -97,7 +98,7 @@ export default function LoginPage() {
         {/* Register link */}
         <p className="text-center text-sm text-ink-muted mt-6">
           אין לך חשבון?{' '}
-          <Link to="/register" className="text-brand-600 font-medium hover:text-brand-700">
+          <Link to="/register" className="text-brand-400 font-medium hover:text-brand-300">
             הרשמה חינם
           </Link>
         </p>

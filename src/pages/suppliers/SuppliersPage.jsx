@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import useAuthStore from '@/store/authStore'
 import { subscribeSuppliers, addSupplier, updateSupplier, deleteSupplier } from '@/firebase/db'
+import ActionSwitch from '@/components/ui/ActionSwitch'
 
 const TYPES = [
   { key: 'platform', label: 'מחובר למערכת', desc: 'מעקב הזמנות ועמלות', badge: 'badge-success' },
@@ -12,8 +13,8 @@ const CATEGORIES = ['זכוכית', 'פרזול', 'אלומיניום', 'סיל�
 
 const EMPTY = {
   name: '', type: 'private', category: 'זכוכית',
-  phone: '', email: '', contactName: '', notes: '',
-  commissionRate: 0,
+  phone: '', email: '', contactName: '', address: '', notes: '',
+  commissionRate: 0, isPrimary: false, active: true,
 }
 
 export default function SuppliersPage() {
@@ -33,6 +34,12 @@ export default function SuppliersPage() {
   const handleDelete = async (id) => {
     if (!confirm('למחוק ספק זה?')) return
     await deleteSupplier(uid, id)
+  }
+
+  const handleSetPrimary = async (supplier) => {
+    await Promise.all(
+      suppliers.map(s => updateSupplier(uid, s.id, { isPrimary: s.id === supplier.id }))
+    )
   }
 
   return (
@@ -60,12 +67,12 @@ export default function SuppliersPage() {
       ) : (
         <div className="space-y-5">
           {platform.length > 0 && (
-            <SupplierGroup title="ספקי פלטפורמה" suppliers={platform}
-              onEdit={s => setModal(s)} onDelete={handleDelete} />
+            <SupplierGroup title="ספקי פלטפורמה" suppliers={platform} uid={uid}
+              onEdit={s => setModal(s)} onDelete={handleDelete} onSetPrimary={handleSetPrimary} />
           )}
           {privates.length > 0 && (
-            <SupplierGroup title="ספקים פרטיים" suppliers={privates}
-              onEdit={s => setModal(s)} onDelete={handleDelete} />
+            <SupplierGroup title="ספקים פרטיים" suppliers={privates} uid={uid}
+              onEdit={s => setModal(s)} onDelete={handleDelete} onSetPrimary={handleSetPrimary} />
           )}
         </div>
       )}
@@ -81,51 +88,67 @@ export default function SuppliersPage() {
   )
 }
 
-function SupplierGroup({ title, suppliers, onEdit, onDelete }) {
+function SupplierGroup({ title, suppliers, uid, onEdit, onDelete, onSetPrimary }) {
   return (
     <div>
       <h2 className="text-sm font-semibold text-ink-muted uppercase tracking-wide mb-3">{title}</h2>
       <div className="grid sm:grid-cols-2 gap-3">
         {suppliers.map(s => (
-          <SupplierCard key={s.id} supplier={s} onEdit={() => onEdit(s)} onDelete={() => onDelete(s.id)} />
+          <SupplierCard key={s.id} supplier={s} uid={uid}
+            onEdit={() => onEdit(s)}
+            onDelete={() => onDelete(s.id)}
+            onSetPrimary={() => onSetPrimary(s)} />
         ))}
       </div>
     </div>
   )
 }
 
-function SupplierCard({ supplier, onEdit, onDelete }) {
-  const type = TYPES.find(t => t.key === supplier.type) || TYPES[1]
+function SupplierCard({ supplier, uid, onEdit, onDelete, onSetPrimary }) {
+  const type     = TYPES.find(t => t.key === supplier.type) || TYPES[1]
+  const isActive = supplier.active !== false   // default true for old records
+
   return (
-    <div className="card group hover:shadow-card transition-shadow">
+    <div className={`card transition-shadow ${supplier.isPrimary ? 'ring-2 ring-brand-400' : ''} ${!isActive ? 'opacity-60' : 'hover:shadow-card'}`}>
       <div className="flex items-start justify-between gap-2 mb-3">
         <div>
-          <p className="font-semibold text-ink">{supplier.name}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-ink">{supplier.name}</p>
+            {supplier.isPrimary && <span className="badge badge-warning text-xs">★ ראשי</span>}
+          </div>
           <p className="text-xs text-ink-muted">{supplier.category}</p>
         </div>
         <span className={`badge ${type.badge} shrink-0`}>{type.label}</span>
       </div>
 
-      {supplier.contactName && (
-        <p className="text-sm text-ink-muted">👤 {supplier.contactName}</p>
-      )}
+      {supplier.contactName && <p className="text-sm text-ink-muted">👤 {supplier.contactName}</p>}
       {supplier.phone && (
-        <a href={`tel:${supplier.phone}`}
-           className="text-sm text-brand-600 hover:text-brand-700 block" dir="ltr">
-          {supplier.phone}
+        <a href={`tel:${supplier.phone}`} className="text-sm text-brand-600 hover:text-brand-700 block" dir="ltr">
+          📞 {supplier.phone}
         </a>
       )}
+      {supplier.email   && <p className="text-sm text-ink-muted" dir="ltr">✉️ {supplier.email}</p>}
+      {supplier.address && <p className="text-sm text-ink-muted">📍 {supplier.address}</p>}
       {supplier.type === 'platform' && supplier.commissionRate > 0 && (
         <p className="text-xs text-success mt-1">עמלה: {supplier.commissionRate}%</p>
       )}
-      {supplier.notes && (
-        <p className="text-xs text-ink-subtle mt-1 truncate">{supplier.notes}</p>
-      )}
+      {supplier.notes && <p className="text-xs text-ink-subtle mt-1 truncate">{supplier.notes}</p>}
 
-      <div className="flex gap-2 mt-3 pt-3 border-t border-surface-100
-                      opacity-0 group-hover:opacity-100 transition-opacity">
-        <button className="btn-secondary text-xs flex-1" onClick={onEdit}>עריכה</button>
-        <button className="btn-ghost text-xs text-danger flex-1" onClick={onDelete}>מחיקה</button>
+      <div className="mt-3 pt-3 border-t border-surface-100 flex items-center justify-between">
+        <ActionSwitch
+          label="הפעל ספק"
+          labelOn="ספק פעיל"
+          active={isActive}
+          onToggle={val => updateSupplier(uid, supplier.id, { active: val })}
+          color="gold"
+        />
+        <div className="flex gap-2">
+          {!supplier.isPrimary && (
+            <button className="btn-ghost text-xs text-brand-600" onClick={onSetPrimary}>★ ראשי</button>
+          )}
+          <button className="btn-secondary text-xs" onClick={onEdit}>עריכה</button>
+          <button className="btn-ghost text-xs text-danger" onClick={onDelete}>מחיקה</button>
+        </div>
       </div>
     </div>
   )
@@ -191,6 +214,10 @@ function SupplierModal({ supplier, uid, onClose }) {
           <div>
             <label className="label">אימייל</label>
             <input className="input" type="email" value={form.email} onChange={set('email')} dir="ltr" />
+          </div>
+          <div>
+            <label className="label">כתובת</label>
+            <input className="input" placeholder="רחוב, עיר" value={form.address} onChange={set('address')} />
           </div>
           {form.type === 'platform' && (
             <div>

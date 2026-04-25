@@ -7,43 +7,47 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ONE MAN SHOW brand palette
+        // ── Gold brand ──────────────────────────────────────────
         brand: {
-          50:  '#f0f4ff',
-          100: '#e0e9ff',
-          200: '#c7d6fe',
-          300: '#a5b8fc',
-          400: '#818cf8',
-          500: '#6366f1',  // primary
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
-          950: '#1e1b4b',
+          50:  '#FFF8DB',
+          100: '#FFF0A8',
+          200: '#FFE566',
+          300: '#FFD43B',
+          400: '#F5C518',  // ← primary gold
+          500: '#D4A017',
+          600: '#B38600',
+          700: '#8C6900',
+          800: '#664D00',
+          900: '#3D2D00',
+          950: '#1A1200',
         },
+        // ── Dark surfaces ───────────────────────────────────────
         surface: {
-          DEFAULT: '#ffffff',
-          50:  '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          800: '#1e293b',
-          900: '#0f172a',
-          950: '#020617',
+          DEFAULT: '#0C0C0C',
+          50:  '#0C0C0C',   // page background
+          100: '#141414',   // sidebar / nav bar
+          200: '#1E1E1E',   // cards / inputs / modals
+          300: '#262626',   // borders / dividers
+          400: '#303030',   // hover states
+          800: '#A0A0A0',
+          900: '#D0D0D0',
+          950: '#F0F0F0',
         },
+        // ── Text ────────────────────────────────────────────────
         ink: {
-          DEFAULT: '#0f172a',
-          muted:   '#64748b',
-          subtle:  '#94a3b8',
+          DEFAULT: '#FFFFFF',
+          muted:   '#9CA3AF',
+          subtle:  '#6B7280',
         },
-        success: '#10b981',
-        warning: '#f59e0b',
-        danger:  '#ef4444',
-        info:    '#3b82f6',
+        success: '#22C55E',
+        warning: '#F59E0B',
+        danger:  '#EF4444',
+        info:    '#60A5FA',
       },
       fontFamily: {
-        sans: ['Noto Sans Hebrew', 'Segoe UI', 'system-ui', 'sans-serif'],
+        sans:    ['Noto Sans Hebrew', 'Segoe UI', 'system-ui', 'sans-serif'],
         display: ['Noto Sans Hebrew', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        mono:    ['JetBrains Mono', 'monospace'],
       },
       borderRadius: {
         'xl':  '0.75rem',
@@ -51,12 +55,42 @@ export default {
         '3xl': '1.5rem',
       },
       boxShadow: {
-        'soft':  '0 2px 8px 0 rgba(0,0,0,0.06)',
-        'card':  '0 4px 16px 0 rgba(0,0,0,0.08)',
-        'modal': '0 20px 60px 0 rgba(0,0,0,0.15)',
+        'soft':  '0 1px 4px 0 rgba(0,0,0,0.5)',
+        'card':  '0 4px 24px 0 rgba(0,0,0,0.6)',
+        'modal': '0 20px 80px 0 rgba(0,0,0,0.9)',
+        'gold':  '0 0 24px 0 rgba(245,197,24,0.15)',
       },
       spacing: {
         'sidebar': '240px',
+      },
+      keyframes: {
+        'slide-up': {
+          '0%':   { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'flash-green': {
+          '0%, 25%': { backgroundColor: 'rgba(34,197,94,0.12)' },
+          '100%':    { backgroundColor: 'transparent' },
+        },
+        'toast-in': {
+          '0%':   { opacity: '0', transform: 'translateY(8px) scale(0.96)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        'pulse-bar': {
+          '0%, 100%': { opacity: '1' },
+          '50%':      { opacity: '0.3' },
+        },
+        'gold-pulse': {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(245,197,24,0)' },
+          '50%':      { boxShadow: '0 0 0 8px rgba(245,197,24,0.08)' },
+        },
+      },
+      animation: {
+        'slide-up':    'slide-up 200ms ease-out both',
+        'flash-green': 'flash-green 1800ms ease-out forwards',
+        'toast-in':    'toast-in 200ms ease-out both',
+        'pulse-bar':   'pulse-bar 1.2s ease-in-out infinite',
+        'gold-pulse':  'gold-pulse 2.5s ease-in-out infinite',
       },
     },
   },

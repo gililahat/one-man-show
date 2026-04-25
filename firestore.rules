@@ -9,6 +9,56 @@ service cloud.firestore {
       match /{collection}/{docId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+
+      // Public quote: owner has full access; anyone can read if isPublic==true;
+      // client can approve only ONCE without auth
+      match /quotes/{quoteId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if resource.data.isPublic == true;
+        allow update: if request.auth == null &&
+          resource.data.isPublic == true &&
+          resource.data.clientApproved != true &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['clientApproved', 'clientApprovedAt']);
+      }
+    }
+
+    // Public quotes — readable by anyone, client approval allowed once without auth
+    match /publicQuotes/{quoteId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+      allow update: if request.auth == null &&
+        resource.data.clientApproved != true &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['clientApproved', 'clientApprovedAt']);
+    }
+
+    // Supplier confirmation tokens — readable by anyone, supplier can confirm ONCE
+    match /supplierTokens/{token} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth == null &&
+        resource.data.confirmed != true &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['confirmed', 'confirmedAt']);
+    }
+
+    // Booking tokens — readable by anyone; client can book ONCE; owner supplier-activation allowed once
+    match /bookingTokens/{token} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      // Client books the slot (only if not already booked)
+      allow update: if request.auth == null &&
+        resource.data.booked != true &&
+        request.resource.data.booked == true &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['booked', 'bookedAt', 'bookedSlot', 'bookedName', 'bookedPhone',
+                    'bookedRegion', 'bookedColor', 'isFirstOfDay', 'dayStartTime']);
+      // All-suppliers-confirmed activation (from SupplierConfirmPage)
+      allow update: if request.auth == null &&
+        resource.data.suppliersConfirmed != true &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['suppliersConfirmed', 'activatedAt']);
     }
 
     // Deny all other access
