@@ -711,18 +711,6 @@ function Divider() {
   return <div style={{ borderTop: '1px solid #e2e8f0' }} />
 }
 
-function Th({ children, align, width }) {
-  return (
-    <th style={{
-      textAlign: align, padding: '0 0 10px',
-      color: '#94a3b8', fontWeight: 600, fontSize: 11, letterSpacing: '0.1em',
-      width: width || undefined,
-    }}>
-      {children}
-    </th>
-  )
-}
-
 function SumRow({ label, value, green }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
